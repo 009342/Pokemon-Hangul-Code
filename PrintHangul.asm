@@ -2,7 +2,7 @@ vHangulCounter EQU $9600
 vHangulDest EQU $9602
 vHangulSrc EQU $9604
 vUploadedTile EQU $9610
-FontInfoTile EQU 5
+FontInfoTile EQU 8
 MaxFontLimit EQU $36
 PrintHangul:
 	
