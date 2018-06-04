@@ -1,7 +1,8 @@
-vHangulCounter EQU $8DB0
-vHangulDest EQU $8DB2
-vHangulSrc EQU $8DB4
-vUploadedTile EQU $8DC0
+vHangulCounter EQU $8FB0
+vHangulDest EQU $8FB2
+vHangulSrc EQU $8FB4
+vUploadedTile EQU $8FC0
+MaxFontLimit EQU $36
 PrintHangul:
 	
 	;hl(TileMap) bc(Script Bytes), return a : FontBank
@@ -73,7 +74,7 @@ PrintHangul:
 		pop hl
 	
 	inc a
-	cp a,$20
+	cp a,MaxFontLimit
 	jr c,.Pass
 	ld a,$00
 .Pass
@@ -170,7 +171,7 @@ FindAvailableTiles:
 	jr z,.Done
 	pop af
 	inc a
-	cp a,$20
+	cp a,MaxFontLimit
 	jr c,.Pass
 	ld a,$00
 .Pass
