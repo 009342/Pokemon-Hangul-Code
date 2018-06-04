@@ -1,7 +1,8 @@
-vHangulCounter EQU $8FB0
-vHangulDest EQU $8FB2
-vHangulSrc EQU $8FB4
-vUploadedTile EQU $8FC0
+vHangulCounter EQU $9600
+vHangulDest EQU $9602
+vHangulSrc EQU $9604
+vUploadedTile EQU $9610
+FontInfoTile EQU 5
 MaxFontLimit EQU $36
 PrintHangul:
 	
@@ -126,8 +127,8 @@ FindUploadedTile: ;VRAM : 8DC0~8DFF, bc : Hangul 2bytes, return a : TileNumber
 	push hl
 	ld hl,vUploadedTile
 .loop
-	ld a,h
-	cp a,$8E
+	ld a,l
+	cp a,$10 * FontInfoTile
 	jr z,.NotFound
 	
 	call ReadVRAM
