@@ -1,10 +1,10 @@
-vHangulCounter EQU $9630
-vHangulDest EQU $9632
-vHangulSrc EQU $9634
-vUploadedTile EQU $9640
+vHangulCounter EQU $9600
+vHangulDest EQU $9602
+vHangulSrc EQU $9604
+vUploadedTile EQU $9610
 FontInfoTile EQU 8
-MaxFontLimit EQU $3F
-PrintHangul::
+MaxFontLimit EQU $36
+PrintHangul:
 	
 	;hl(TileMap) bc(Script Bytes), return a : FontBank
 	push hl
@@ -87,7 +87,7 @@ PrintHangul::
 	and a,$0C
 	rrca
 	rrca
-	add a,$78
+	add a,$30
 	push af ; bank
 
 	

@@ -1,8 +1,8 @@
 HBlankCopyDouble:: 
-	ld a,[hROMBank]
+	ld a,[H_LOADEDROMBANK]
 	push af
 	ld a,b
-	rst Bankswitch
+	call BankswitchCommon
 	ld a,[rLCDC]
 	bit rLCDC_ENABLE,a
 	sla c
@@ -44,7 +44,7 @@ HBlankCopyDouble::
 	jr nz,.HBlankLoop
 .Done
 	pop af
-	rst Bankswitch
+	call BankswitchCommon
 	ret
 .ReWrite
 	dec hl
