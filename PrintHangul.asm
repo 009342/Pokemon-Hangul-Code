@@ -1,10 +1,11 @@
-vHangulCounter EQU $9600
-vHangulDest EQU $9602
-vHangulSrc EQU $9604
-vUploadedTile EQU $9610
+vHangulCounter EQU $8F40
+vHangulDest EQU $8E42
+vHangulSrc EQU $8E44
+vUploadedTile EQU $8E50
 FontInfoTile EQU 8
-MaxFontLimit EQU $36
-PrintHangul:
+MaxFontLimit EQU $32
+;LegacyFont : Location of Legacy Font
+PrintHangul::
 	
 	;hl(TileMap) bc(Script Bytes), return a : FontBank
 	push hl
@@ -12,7 +13,7 @@ PrintHangul:
 	ld bc,-20
 	add hl,bc
 	pop bc
-	call FindUploadedTile
+	call FindUploadedTiles
 	cp a,$FF
 	jr nz,.AlreadyExist
 	jr .NotFound
@@ -68,21 +69,8 @@ PrintHangul:
 		pop hl
 	
 	pop bc
-	
-		push hl
-		ld hl,vHangulCounter
-		call ReadVRAM
-		pop hl
-	
-	inc a
-	cp a,MaxFontLimit
-	jr c,.Pass
-	ld a,$00
-.Pass
 	push hl
-	ld hl,vHangulCounter
-	call WriteVRAM
-
+	call IncreaseCounter
 	ld a,b
 	and a,$0C
 	rrca
@@ -123,14 +111,72 @@ PrintHangul:
 	pop hl
 	ret
 	
-FindUploadedTile: ;VRAM : 8DC0~8DFF, bc : Hangul 2bytes, return a : TileNumber
+PrintEnglish::
+	ld b,$00
+	ld a,c
+	call FindUploadedEnglishTile
+	cp a,$FF
+	jr nz,.AlreadyExist
+	jr .NotFound
+.AlreadyExist
+	add a,$80
+	ld [hli],a
+	ret
+.NotFound
+	call FindAvailableEnglishTile
+		push hl
+		ld hl,vUploadedTile
+		push af
+		add a,l
+		ld l,a
+		ld a,c
+		call WriteVRAM
+		pop af
+		pop hl
+	add a,$80
+	bit 1,a
+	jr z,.DoNotInc
+	call IncreaseCounter
+.DoNotInc
+	push de
+	ld [hli],a
+	push hl
+	push af
+	ld a,-$80
+	add a,c
+	ld hl,$0000
+	ld l,a
+	add hl,hl
+	add hl,hl
+	add hl,hl
+	push bc
+	ld bc,LegacyFont
+	add hl,bc
+	pop bc
+		push hl
+		pop de
+	pop af
+	ld h,$08
+	ld l,a
+	add hl,hl ;*2
+	add hl,hl ;*2
+	add hl,hl ;*2
+	add hl,hl ;*2 ;귀찮아요...
+	ld b,BANK(LegacyFont)
+	ld c,$01
+	call HBlankCopyDouble
+	pop hl
+	pop de
+	ret
+	;hl dest
+	;de source
+	;a bank	
+FindUploadedTiles: ;VRAM : 8DC0~8DFF, bc : Hangul 2bytes, return a : TileNumber
+	push de
 	push hl
 	ld hl,vUploadedTile
+	ld e,$10*(FontInfoTile-1)
 .loop
-	ld a,l
-	cp a,$10 * FontInfoTile
-	jr z,.NotFound
-	
 	call ReadVRAM
 	cp a,b
 	jr nz,.PrepareLoop
@@ -140,6 +186,9 @@ FindUploadedTile: ;VRAM : 8DC0~8DFF, bc : Hangul 2bytes, return a : TileNumber
 	jr z,.Found
 	dec hl
 .PrepareLoop
+	dec e
+	dec e
+	jr z,.NotFound
 	inc hl
 	inc hl
 	jr .loop
@@ -152,11 +201,53 @@ FindUploadedTile: ;VRAM : 8DC0~8DFF, bc : Hangul 2bytes, return a : TileNumber
 	sra a
 	
 	pop hl
+	pop de
 	ret
 .NotFound
 	pop hl
+	pop de
 	ld a,$FF
 	ret
+	
+FindUploadedEnglishTile ;a : 80~FF a : tile -$80
+	push de
+	push hl
+	ld hl,vUploadedTile
+	ld e,$10*(FontInfoTile-1)
+	ld d,a
+.loop
+	call ReadVRAM
+	bit 7,a
+	jr z,.PrepareLoop
+	cp a,d
+	jr z,.Found
+	inc hl
+	call ReadVRAM
+	cp a,d
+	jr z,.Found
+	inc hl
+	jr .PrepareLoop2
+.PrepareLoop
+	inc hl
+	inc hl
+.PrepareLoop2
+	dec e
+	dec e
+	jr nz,.loop
+.NotFound
+	pop hl
+	pop de
+	ld a,$FF
+	ret
+.Found
+	push bc
+	ld bc,$FFFF-vUploadedTile+1
+	add hl,bc
+	ld a,l
+	pop bc
+	pop hl
+	pop de
+	ret 
 	
 FindAvailableTiles:
 	push hl
@@ -173,6 +264,29 @@ FindAvailableTiles:
 	pop af
 	inc a
 	cp a,MaxFontLimit
+	jr c,.Pass
+	ld a,$00
+.Pass
+	jr .loop
+.Done
+	pop af
+	ret
+	
+FindAvailableEnglishTile: ; a : Tile return : Tile-$80
+	push hl
+	ld hl,vHangulCounter
+	call ReadVRAM
+	sla a
+	pop hl
+.loop
+	push af
+	add a,$80
+	call FindTileMap
+	and a
+	jr z,.Done
+	pop af
+	inc a
+	cp a,MaxFontLimit * 2
 	jr c,.Pass
 	ld a,$00
 .Pass
@@ -207,6 +321,24 @@ FindTileMap:
 	ld a,$01
 	ret
 	
+IncreaseCounter:
+	push af
+	push hl
+	ld hl,vHangulCounter
+	call ReadVRAM
+	pop hl
+	
+	inc a
+	cp a,MaxFontLimit
+	jr c,.Pass
+	ld a,$00
+.Pass
+	push hl
+	ld hl,vHangulCounter
+	call WriteVRAM
+	pop hl
+	pop af
+	ret	
 ReadVRAM:
 	;if LCD is off
 	ld a,[rLCDC]
