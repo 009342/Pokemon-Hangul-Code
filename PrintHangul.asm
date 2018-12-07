@@ -1,6 +1,5 @@
-vHangulCounter EQU $8F40
+vHangulCounter EQU $8E40
 vHangulDest EQU $8E42
-vHangulSrc EQU $8E44
 vUploadedTile EQU $8E50
 FontInfoTile EQU 8
 MaxFontLimit EQU $32
